@@ -5,6 +5,9 @@ This repository contains a reference implementation of *Similar Function Elimina
 pass for the Emscripten transpiler that coalesces functions that share similar structure but different literals or identifiers into
 helper functions. It maintains asm.js compliance as well.
 
+## [Detailed Design Document](https://github.com/achoudhury85/Similar-Function-Elimination/blob/master/Similar%20Function%20Elimination.docx)
+You might have to download and view offline in Word
+
 ## Requirements
 * The ability to run (a hopefully recent version of) Emscripten. This has been tested with version 1.37.16.
 * Some flavor of Linux (might work on Windows and OSX but not tested on those platforms). This has been tested on CentOS 7.
