@@ -1,12 +1,12 @@
 # Similar Function Elimination
 
 ## Overview
-This repository contains a reference implementation of *Similar Function Elimination*, a post build optimization
+This repository contains a reference implementation of **Similar Function Elimination**, a post build optimization
 pass for the Emscripten transpiler that coalesces functions that share similar structure but different literals or identifiers into
 helper functions. It maintains asm.js compliance as well.
 
-## [Detailed Design Document](https://github.com/achoudhury85/Similar-Function-Elimination/blob/master/Similar%20Function%20Elimination.docx)
-You might have to download and view offline in Word
+## Detailed Design Document
+You might have to [download](https://github.com/achoudhury85/Similar-Function-Elimination/blob/master/Similar%20Function%20Elimination.docx) and view offline in Word
 
 ## Requirements
 * The ability to run (a hopefully recent version of) Emscripten. This has been tested with version 1.37.16.
