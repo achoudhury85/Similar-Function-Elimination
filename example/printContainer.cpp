@@ -16,7 +16,6 @@ template<template<class, class> class Container, typename T>
 std::string toString(const Container<T, std::allocator<T>>& container)
 {
     ostringstream oss;
-    std::copy(container.begin(), container.end(), std::ostream_iterator<T>(oss, " "));
     for (auto& val: container)
     {
       oss << val << " ";
