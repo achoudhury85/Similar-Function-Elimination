@@ -6,12 +6,19 @@ pass for the Emscripten transpiler that coalesces functions that share similar s
 helper functions. It maintains asm.js compliance as well.
 
 ## Detailed Design Document
-You might have to [download](https://github.com/achoudhury85/Similar-Function-Elimination/blob/master/Similar%20Function%20Elimination.docx) and view offline in Word
+Can be found [here](https://github.com/achoudhury85/Similar-Function-Elimination/blob/master/Similar%20Function%20Elimination.pdf).
 
 ## Requirements
 * The ability to run (a hopefully recent version of) Emscripten. This has been tested with version 1.37.16.
 * Some flavor of Linux (might work on Windows and OSX but not tested on those platforms). This has been tested on CentOS 7.
 * A version of NodeJS that understands ES6. Tested with version 8.4.0.
+
+## Tests
+* There are a number of tests for SFE located under tests/unit_tests/
+* To run them, first set up your environment from the root directory of your repository.  
+    source ./bin/sfe_env.sh
+* Then run:  
+    mocha ./tests/unit_tests/*.js
 
 ## Running
 * Clone the repository and check out the master branch
