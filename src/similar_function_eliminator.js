@@ -179,7 +179,26 @@ SimilarFunctionEliminator.prototype.getAsmAst = function(ast) {
       asmAst = node.declarations[0].init.callee.body;
 
       break;
+    } else if (node.type === "ExpressionStatement") {
+      // Look for Module['asm'] = ...;
+      var expression = node.expression;
+      if ( expression.type === 'AssignmentExpression' &&
+           expression.operator === '=' &&
+           expression.left.type === 'MemberExpression' &&
+           expression.left.object !== undefined &&
+           expression.left.object.type === 'Identifier' &&
+           expression.left.object.name === 'Module' &&
+           expression.left.property.type === 'Literal' &&
+           expression.left.property.value === 'asm') {
+        asmAst = expression.right.body;
+        break;
+      }
     }
+  }
+
+  if (asmAst === undefined)
+  {
+    throw new Error('Could not find ASM AST!');
   }
 
   // Used for custom codegenning as the default codegen option converts floats to int.
