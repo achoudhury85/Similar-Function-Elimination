@@ -328,7 +328,18 @@ SimilarFunctionEliminator.prototype.uncanonicalize = function(functionAst, place
   }
 
   var localNameGenerator = this.localNameGenerator;
-  localNameGenerator.initialize([this.getIdentifiers(functionAst)]);
+  var existingIdentifiers = this.getIdentifiers(functionAst);
+
+  // Add function table names to the existing identifiers
+  for (var placeholderName in placeholderData) {
+    var placeholderInfo = placeholderData[placeholderName];
+
+    if (placeholderInfo.parametrize && placeholderInfo.type === 'CallExpression') {
+      existingIdentifiers.add(placeholderInfo.functionTable.name);
+    }
+  }
+
+  localNameGenerator.initialize([existingIdentifiers]);
 
   var replacementVariables = [];
   var parameters = {};
