@@ -193,6 +193,15 @@ SimilarFunctionEliminator.prototype.getAsmAst = function(ast) {
         asmAst = expression.right.body;
         break;
       }
+
+      // Look for function scope
+      if ( expression.type === 'FunctionExpression' &&
+           expression.body.body[0].type === 'ExpressionStatement' &&
+           expression.body.body[0].expression.type === 'Literal' &&
+           expression.body.body[0].expression.value === 'use asm') {
+        asmAst = expression.body;
+        break;  
+      }
     }
   }
 
