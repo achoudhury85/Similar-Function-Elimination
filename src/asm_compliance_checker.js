@@ -15,12 +15,6 @@ AsmComplianceChecker.prototype.addToQueue = function(node, type, parent) {
   this.queue.push(new QueueData(node, type, parent));
 }
 
-AsmComplianceChecker.prototype.annotateIfNecessary = function(node, locals) {
-  if (node.type === 'Identifier' && (node.name in locals)) {
-    this.sfe.annotateInPlace(node, locals[node.name]);
-  }
-}
-
 // Function to be called on nodes that are going to be parametrized.
 AsmComplianceChecker.prototype.run = function (locals) {
   var queue = this.queue;
@@ -152,7 +146,7 @@ AsmComplianceChecker.prototype.run = function (locals) {
           sfe.annotateInPlace(node, otherAsmType);
         }
       } else if (parent.type === 'UnaryExpression') {
-        if (parent.operator === '-') {
+        if (parent.operator === '-' && asmType !== 'double') {
           // -<literal> has type signed, -<identifier> has type intish.
           // Lets coerce to signed
           sfe.annotateInPlace(parent, 'signed');

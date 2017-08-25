@@ -12,6 +12,7 @@ var SFE_MIN_LINES = 4;
 var SimilarFunctionEliminator = function(filename) {
   this.typedArrays = {};
   this.integerMultiplicationFunction = undefined;
+  this.froundFunction = undefined;
   this.bitwiseSignedOperators = new Set(['|', '&', '^', '<<', '>>']);
   this.comparisonOperators = new Set(['==', '!=', '===', '!==', '>', '>=', '<', '<=']);
   this.ast = undefined;
@@ -30,6 +31,8 @@ var SimilarFunctionEliminator = function(filename) {
   // Used for generating variable names within functions
   this.localNameGenerator = new SFE.MinifiedNameGenerator();
 }
+
+SimilarFunctionEliminator.floatZero = undefined;
 
 SimilarFunctionEliminator.prototype.srcToAst = function () {
     return esprima.parse(this.src);
@@ -97,7 +100,7 @@ SimilarFunctionEliminator.prototype.populateTypedArrays = function() {
 // types. The recommended approach is to use the Math.imul function.
 // Accordingly, we will use this function when we detect that we are
 // parametrizing literals inside multiplication operations.
-SimilarFunctionEliminator.prototype.populateIntegerMultiplicationFunction = function() {
+SimilarFunctionEliminator.prototype.populateStandardFunctions = function() {
   var asmAstBody = this.asmAst.body;
   var length = asmAstBody.length;
 
@@ -119,8 +122,23 @@ SimilarFunctionEliminator.prototype.populateIntegerMultiplicationFunction = func
              object.property.name === 'Math' &&
              init.property.name === 'imul') {
             this.integerMultiplicationFunction = curDeclaration.id.name;
-            break;
           }
+
+          if(object.type === 'MemberExpression' &&
+             object.object.name === 'global' &&
+             object.property.name === 'Math' &&
+             init.property.name === 'fround') {
+            this.froundFunction = curDeclaration.id.name;
+          }
+        }
+
+        if (this.froundFunction !== undefined &&
+            init.type === 'CallExpression' &&
+            init.callee.type === 'Identifier' &&
+            init.callee.name === this.froundFunction &&
+            init.arguments[0].type === 'Literal' &&
+            init.arguments[0].value === 0){
+          SimilarFunctionEliminator.floatZero = curDeclaration.id.name;
         }
       }
     }
@@ -133,7 +151,7 @@ SimilarFunctionEliminator.prototype.initialize = function() {
   this.shadowAsmAst = this.getAsmAst(this.srcToAst());
   this.genFunctionNameToIndexDict();
   this.populateTypedArrays();
-  this.populateIntegerMultiplicationFunction();
+  this.populateStandardFunctions();
   this.functionTableCollection = this.computeFunctionTableCollection();
 
   var scopeChain = new Array(2); // Chain of scopes - where each scopes has the locals for that scope along with their types
@@ -252,7 +270,7 @@ SimilarFunctionEliminator.prototype.getTableForFunctions = function(functionName
   }
 
   if (typeof(commonTable) === 'undefined') {
-      if (typeof(commonType) !== 'undefined') {
+    if (typeof(commonType) !== 'undefined') {
       // Attempt to find the table with the common type
       for (var collectionIndex = 0; collectionIndex < numTables; ++collectionIndex) {
         var curTable = tableCollection.at(collectionIndex);
@@ -545,6 +563,17 @@ SimilarFunctionEliminator.prototype.annotateInPlace = function(node, asmType) {
       value: 0,
       raw: '0'
     };
+  } else if (asmType === 'float') {
+    if ((node.type !== 'Identifier' || node.name !== SimilarFunctionEliminator.floatZero) &&
+      (node.type !== 'CallExpression' || node.callee.type !== 'Identifier' || node.callee.name !== this.froundFunction)) {
+      this.clearNode(node);
+      node.type = 'CallExpression';
+      node.callee = {
+          'type': 'Identifier',
+          'name': this.froundFunction
+        };
+      node.arguments = [oldNode];
+    }
   }
 }
 
@@ -580,6 +609,21 @@ SimilarFunctionEliminator.prototype.annotate = function(node, asmType) {
         raw: '0'
       }
     };
+  } else if (asmType === 'float') {
+    // If the node isn't of form 
+    // Math.fround(...) or a predefined identifier for
+    // Math.fround(0)
+    if ((node.type !== 'Identifier' || node.name !== SimilarFunctionEliminator.floatZero) &&
+        (node.type !== 'CallExpression' || node.callee.type !== 'Identifier' || node.callee.name !== this.froundFunction)) {
+      annotatedNode = {
+        type: 'CallExpression',
+        callee: {
+          'type': 'Identifier',
+          'name': this.froundFunction
+        },
+        arguments: [node]
+      };
+    }
   }
 
   return annotatedNode;
@@ -648,14 +692,14 @@ SimilarFunctionEliminator.prototype.modifyAsts = function() {
         arguments: astToCull.params.slice()
       };
 
-      var returnStatement = {
-        type: 'ReturnStatement',
-        argument: null
-      };
-
       if (returnStatementType === 'void') {
         astFnBody.push(callExpression);
       } else {
+        var returnStatement = {
+          type: 'ReturnStatement',
+          argument: null
+        };
+
         // Since we're returning a non void type, we need to return the result of the call,
         // annotated with the right coercion
         returnStatement.argument = this.annotate(callExpression, returnStatementType);
@@ -887,7 +931,12 @@ SimilarFunctionEliminator.getAsmTypeFromAnnotatedNode = function(annotatedNode) 
   } else if (type === 'UnaryExpression' && operator === '-' &&
             annotatedNode.argument.type === 'Literal') {
     asmType = 'int';
+  } else if (type === 'CallExpression') {
+    asmType = 'float';
+  } else if (type === 'Identifier' && annotatedNode.name === this.floatZero) {
+    asmType = 'float';
   }
+
   return asmType;
 }
 
@@ -910,12 +959,14 @@ SimilarFunctionEliminator.getAsmTypeFromReturnStatement = function(functionNode)
         // followed by int, and then void.
         if ((curAsmType !== asmType) &&
             ((curAsmType === 'double') ||
+             (curAsmType === 'float') ||
             ((curAsmType === 'int') && asmType === 'void'))) {
             asmType = curAsmType;
           }
         }
       }
     });
+
   return asmType;
 }
 
