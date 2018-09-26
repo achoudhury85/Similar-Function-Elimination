@@ -12,7 +12,7 @@ export NODE_PATH=$PWD/../node_modules
 export PATH=$PATH:$PWD/../node_modules/bin
 
 echo "Running Emscripten with full optimizations turned on - writing to printContainer.js"
-emcc --std=c++11 -O3 ./printContainer.cpp -o printContainer.js
+emcc -s WASM=0 --std=c++11 -O3 ./printContainer.cpp -o printContainer.js
 
 echo "Now running SFE on printContainer.js. Writing to printContainer_reduced.js"
 node ../src/run_sfe.js --file printContainer.js > printContainer_reduced.js
